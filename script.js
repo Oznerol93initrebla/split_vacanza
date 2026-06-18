@@ -20,6 +20,10 @@ const undoClearBar = document.querySelector("#undoClearBar");
 const undoClearButton = document.querySelector("#undoClear");
 const undoClearText = document.querySelector("#undoClearText");
 const syncStatus = document.querySelector("#syncStatus");
+const lorePaidTotal = document.querySelector("#lorePaidTotal");
+const beaPaidTotal = document.querySelector("#beaPaidTotal");
+const settlementAmount = document.querySelector("#settlementAmount");
+const settlementText = document.querySelector("#settlementText");
 
 const euroFormatter = new Intl.NumberFormat("it-IT", {
   style: "currency",
@@ -112,14 +116,34 @@ function getPayerStatus(expense) {
   }
 
   if (expense.payerA) {
-    return "Pagato da Lore";
+    return "Anticipata da Lore";
   }
 
   if (expense.payerB) {
-    return "Pagato da Bea";
+    return "Anticipata da Bea";
   }
 
   return "Chi ha pagato?";
+}
+
+function getPaymentBalance(items) {
+  return items.reduce(
+    (balance, expense) => {
+      if (expense.payerA && expense.payerB) {
+        balance.lore += expense.cost / PEOPLE;
+        balance.bea += expense.cost / PEOPLE;
+      } else if (expense.payerA) {
+        balance.lore += expense.cost;
+      } else if (expense.payerB) {
+        balance.bea += expense.cost;
+      } else {
+        balance.unassigned += expense.cost;
+      }
+
+      return balance;
+    },
+    { lore: 0, bea: 0, unassigned: 0 }
+  );
 }
 
 async function persistExpenses() {
@@ -319,6 +343,40 @@ function renderStatusGroup(targetList, targetTotal, groupExpenses, emptyText) {
   targetTotal.textContent = formatMoney(total);
 }
 
+function renderSettlement(total) {
+  const balance = getPaymentBalance(expenses);
+  const perPerson = total / PEOPLE;
+  const loreDelta = balance.lore - perPerson;
+  const roundedDelta = Math.round(loreDelta * 100) / 100;
+  const absoluteDelta = Math.abs(roundedDelta);
+
+  lorePaidTotal.textContent = formatMoney(balance.lore);
+  beaPaidTotal.textContent = formatMoney(balance.bea);
+  settlementAmount.textContent = formatMoney(absoluteDelta);
+
+  if (balance.unassigned > 0) {
+    settlementAmount.textContent = "Da definire";
+    settlementText.textContent = `Mancano ${formatMoney(balance.unassigned)} senza pagatore: seleziona Lore o Bea per completare il conguaglio.`;
+    return;
+  }
+
+  if (expenses.length === 0) {
+    settlementText.textContent = "Aggiungi le spese e seleziona chi ha pagato.";
+    return;
+  }
+
+  if (absoluteDelta < 0.01) {
+    settlementText.textContent = "Tutto pari: Lore e Bea hanno sostenuto la stessa quota.";
+    return;
+  }
+
+  if (roundedDelta > 0) {
+    settlementText.textContent = `Bea deve a Lore ${formatMoney(absoluteDelta)}.`;
+  } else {
+    settlementText.textContent = `Lore deve a Bea ${formatMoney(absoluteDelta)}.`;
+  }
+}
+
 function createPayerToggle(expense, field, labelText) {
   const label = document.createElement("label");
   label.className = "payer-toggle";
@@ -393,8 +451,8 @@ function render() {
     const payerOptions = document.createElement("div");
     payerOptions.className = "payer-options";
 
-    const payerA = createPayerToggle(expense, "payerA", "Lore");
-    const payerB = createPayerToggle(expense, "payerB", "Bea");
+  const payerA = createPayerToggle(expense, "payerA", "Lore");
+  const payerB = createPayerToggle(expense, "payerB", "Bea");
 
     payerOptions.append(payerA, payerB);
     payerGroup.append(payerOptions, payerStatus);
@@ -443,6 +501,7 @@ function render() {
   clearAllButton.disabled = expenses.length === 0;
   renderStatusGroup(paidList, paidTotal, paidExpenses, "Nessuna voce pagata");
   renderStatusGroup(pendingList, pendingTotal, pendingExpenses, "Nessuna voce in sospeso");
+  renderSettlement(total);
 }
 
 form.addEventListener("submit", async (event) => {

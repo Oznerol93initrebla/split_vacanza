@@ -129,7 +129,6 @@ h2 {
   font-size: 0.76rem;
   font-weight: 700;
   text-align: center;
-  display: none;
 }
 
 .people-pill span {
@@ -615,6 +614,66 @@ input:focus {
   font-weight: 700;
 }
 
+.settlement-panel {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(116, 79, 198, 0.2);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(0, 161, 155, 0.1));
+}
+
+.settlement-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.settlement-heading .eyebrow {
+  margin-bottom: 5px;
+}
+
+.settlement-heading strong {
+  color: var(--slate-blue);
+  font-size: clamp(1.15rem, 5vw, 1.65rem);
+  line-height: 1.1;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.settlement-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.settlement-grid div {
+  padding: 12px;
+  border: 1px solid rgba(68, 69, 84, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.settlement-grid span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.settlement-grid strong {
+  color: var(--ink);
+  font-size: 1.08rem;
+}
+
+.settlement-text {
+  margin: 12px 0 0;
+  color: var(--charcoal-blue);
+  font-weight: 850;
+  line-height: 1.45;
+}
+
 .hidden {
   display: none;
 }
@@ -642,6 +701,10 @@ input:focus {
   }
 
   .status-board {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .settlement-grid {
     grid-template-columns: 1fr 1fr;
   }
 }

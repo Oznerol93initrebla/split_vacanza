@@ -38,8 +38,9 @@ Quando modifichi il codice, non devi rifare la configurazione di Pages.
 4. Conferma con `Commit changes`.
 5. GitHub Pages aggiorna il sito automaticamente dopo qualche minuto.
 
-Per questa modifica devi sostituire:
+Per le modifiche recenti devi sostituire:
 
+- `index.html`
 - `script.js`
 - `styles.css`
 
