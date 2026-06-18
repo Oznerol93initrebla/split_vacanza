@@ -358,11 +358,15 @@ select:focus {
 
 .expense-item {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 10px;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "check details date"
+    "check payers price"
+    "check payers actions";
+  align-items: start;
+  gap: 8px 10px;
   min-height: 68px;
-  padding: 10px 10px 10px 14px;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.78);
@@ -379,6 +383,7 @@ select:focus {
 }
 
 .paid-toggle {
+  grid-area: check;
   position: relative;
   display: grid;
   place-items: center;
@@ -386,6 +391,7 @@ select:focus {
   height: 42px;
   margin: 0;
   cursor: default;
+  align-self: center;
 }
 
 .paid-checkbox {
@@ -438,6 +444,7 @@ select:focus {
 }
 
 .expense-details {
+  grid-area: details;
   min-width: 0;
 }
 
@@ -446,6 +453,7 @@ select:focus {
   min-width: 0;
   font-weight: 800;
   overflow-wrap: anywhere;
+  line-height: 1.15;
 }
 
 .expense-status {
@@ -457,12 +465,21 @@ select:focus {
 }
 
 .expense-description {
-  display: block;
-  margin-top: 4px;
-  color: rgba(68, 69, 84, 0.76);
+  grid-area: date;
+  justify-self: end;
+  align-self: start;
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  margin-top: 0;
+  padding: 0 9px;
+  border-radius: 11px;
+  background: rgba(116, 79, 198, 0.1);
+  color: var(--slate-blue);
   font-size: 0.74rem;
-  font-weight: 800;
-  overflow-wrap: anywhere;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .is-paid .expense-name {
@@ -477,15 +494,17 @@ select:focus {
 }
 
 .payer-group {
+  grid-area: payers;
   display: grid;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 0;
 }
 
 .payer-options {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
+  max-width: 158px;
 }
 
 .payer-toggle {
@@ -512,8 +531,8 @@ select:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
-  padding: 0 10px;
+  min-height: 32px;
+  padding: 0 8px;
   border: 1px solid rgba(68, 69, 84, 0.18);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.72);
@@ -553,9 +572,11 @@ select:focus {
 }
 
 .expense-price-group {
+  grid-area: price;
   display: grid;
   justify-items: end;
   gap: 3px;
+  align-self: center;
 }
 
 .expense-split {
@@ -566,15 +587,17 @@ select:focus {
 }
 
 .row-actions {
-  display: grid;
-  justify-items: end;
+  grid-area: actions;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
   gap: 7px;
 }
 
 .edit-button {
-  min-height: 34px;
-  min-width: 72px;
-  padding: 0 10px;
+  min-height: 36px;
+  min-width: 76px;
+  padding: 0 11px;
   border-radius: 12px;
   background: rgba(116, 79, 198, 0.12);
   color: var(--slate-blue);
@@ -584,8 +607,8 @@ select:focus {
 .delete-button {
   display: grid;
   place-items: center;
-  width: 42px;
-  min-height: 42px;
+  width: 38px;
+  min-height: 38px;
   border-radius: 14px;
   background: rgba(192, 169, 176, 0.24);
   color: var(--charcoal-blue);

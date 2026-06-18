@@ -646,7 +646,7 @@ function render() {
 
     const description = document.createElement("span");
     description.className = "expense-description";
-    description.textContent = expense.description ? `Data acquisto: ${formatDescription(expense.description)}` : "Data acquisto non inserita";
+    description.textContent = expense.description ? formatDescription(expense.description) : "Senza data";
 
     const payerGroup = document.createElement("div");
     payerGroup.className = "payer-group";
@@ -671,7 +671,7 @@ function render() {
 
     const details = document.createElement("div");
     details.className = "expense-details";
-    details.append(name, status, description, payerGroup);
+    details.append(name, status);
 
     const priceGroup = document.createElement("div");
     priceGroup.className = "expense-price-group";
@@ -714,7 +714,7 @@ function render() {
     });
 
     rowActions.append(editButton, deleteButton);
-    item.append(paidLabel, details, priceGroup, rowActions);
+    item.append(paidLabel, details, description, payerGroup, priceGroup, rowActions);
 
     if (editingExpenseId === expense.id) {
       item.append(createEditForm(expense));
