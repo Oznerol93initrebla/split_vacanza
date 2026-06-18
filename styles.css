@@ -385,7 +385,7 @@ select:focus {
   width: 42px;
   height: 42px;
   margin: 0;
-  cursor: pointer;
+  cursor: default;
 }
 
 .paid-checkbox {
@@ -395,7 +395,7 @@ select:focus {
   min-height: 42px;
   margin: 0;
   opacity: 0;
-  cursor: pointer;
+  pointer-events: none;
 }
 
 .paid-mark {
@@ -419,8 +419,7 @@ select:focus {
   color: white;
 }
 
-.paid-checkbox:disabled + .paid-mark {
-  cursor: not-allowed;
+.paid-checkbox:disabled:not(:checked) + .paid-mark {
   opacity: 0.42;
   background: rgba(68, 69, 84, 0.08);
 }
@@ -436,14 +435,6 @@ select:focus {
 
 .paid-checkbox:focus-visible + .paid-mark {
   box-shadow: 0 0 0 4px rgba(0, 161, 155, 0.16);
-}
-
-.paid-toggle:hover .paid-mark {
-  transform: translateY(-1px);
-}
-
-.paid-toggle:has(.paid-checkbox:disabled):hover .paid-mark {
-  transform: none;
 }
 
 .expense-details {
@@ -548,6 +539,10 @@ select:focus {
   color: rgba(68, 69, 84, 0.78);
   font-size: 0.72rem;
   font-weight: 850;
+}
+
+.is-paid .payer-status {
+  display: none;
 }
 
 .expense-price {

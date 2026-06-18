@@ -125,6 +125,16 @@ function formatMoney(value) {
   return euroFormatter.format(value);
 }
 
+function capitalizeFirstLetter(value) {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return "";
+  }
+
+  return `${trimmedValue.charAt(0).toLocaleUpperCase("it-IT")}${trimmedValue.slice(1)}`;
+}
+
 function formatDescription(value) {
   if (!value) {
     return "";
@@ -185,19 +195,7 @@ function getDateFilterLabel(value) {
 }
 
 function getPayerStatus(expense) {
-  if (expense.payerA && expense.payerB) {
-    return "Divisa tra Lore e Bea";
-  }
-
-  if (expense.payerA) {
-    return "Anticipata da Lore";
-  }
-
-  if (expense.payerB) {
-    return "Anticipata da Bea";
-  }
-
-  return "Chi ha pagato?";
+  return expense.paid ? "" : "Chi ha pagato?";
 }
 
 function canMarkAsPaid(expense) {
@@ -584,7 +582,7 @@ function createEditForm(expense) {
   editForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const nextName = editName.value.trim();
+    const nextName = capitalizeFirstLetter(editName.value);
     const nextCost = Number(editCost.value);
     const nextDescription = parseDayMonth(editDescription.value);
 
@@ -630,25 +628,8 @@ function render() {
     paidCheckbox.className = "paid-checkbox";
     paidCheckbox.type = "checkbox";
     paidCheckbox.checked = expense.paid;
-    paidCheckbox.disabled = !canMarkAsPaid(expense);
-    paidCheckbox.setAttribute(
-      "aria-label",
-      canMarkAsPaid(expense)
-        ? `Segna ${expense.name} come pagata`
-        : `Seleziona Lore e Bea prima di segnare ${expense.name} come pagata`
-    );
-    paidCheckbox.addEventListener("change", async () => {
-      if (!canMarkAsPaid(expense)) {
-        return;
-      }
-
-      clearUndoSnapshot();
-      expenses = expenses.map((itemExpense) =>
-        itemExpense.id === expense.id ? { ...itemExpense, paid: paidCheckbox.checked } : itemExpense
-      );
-      render();
-      await persistExpenses();
-    });
+    paidCheckbox.disabled = true;
+    paidCheckbox.setAttribute("aria-label", expense.paid ? `${expense.name} pagata` : `${expense.name} da pagare`);
 
     const paidMark = document.createElement("span");
     paidMark.className = "paid-mark";
@@ -661,7 +642,7 @@ function render() {
 
     const status = document.createElement("span");
     status.className = "expense-status";
-    status.textContent = expense.paid ? "Pagata" : canMarkAsPaid(expense) ? "Pronta da segnare" : "Da pagare";
+    status.textContent = expense.paid ? "Pagata" : "Da pagare";
 
     const description = document.createElement("span");
     description.className = "expense-description";
@@ -682,7 +663,11 @@ function render() {
   const payerB = createPayerToggle(expense, "payerB", "Bea");
 
     payerOptions.append(payerA, payerB);
-    payerGroup.append(payerOptions, payerStatus);
+    payerGroup.append(payerOptions);
+
+    if (payerStatus.textContent) {
+      payerGroup.append(payerStatus);
+    }
 
     const details = document.createElement("div");
     details.className = "expense-details";
@@ -763,7 +748,7 @@ function render() {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const name = nameInput.value.trim();
+  const name = capitalizeFirstLetter(nameInput.value);
   const cost = Number(costInput.value);
   const description = parseDayMonth(dateInput.value);
 
