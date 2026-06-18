@@ -108,15 +108,15 @@ function formatMoney(value) {
 
 function getPayerStatus(expense) {
   if (expense.payerA && expense.payerB) {
-    return "Divisa tra A e B";
+    return "Divisa tra Lore e Bea";
   }
 
   if (expense.payerA) {
-    return "Anticipata da Persona A";
+    return "Pagato da Lore";
   }
 
   if (expense.payerB) {
-    return "Anticipata da Persona B";
+    return "Pagato da Bea";
   }
 
   return "Chi ha pagato?";
@@ -393,8 +393,8 @@ function render() {
     const payerOptions = document.createElement("div");
     payerOptions.className = "payer-options";
 
-    const payerA = createPayerToggle(expense, "payerA", "Persona A");
-    const payerB = createPayerToggle(expense, "payerB", "Persona B");
+    const payerA = createPayerToggle(expense, "payerA", "Lore");
+    const payerB = createPayerToggle(expense, "payerB", "Bea");
 
     payerOptions.append(payerA, payerB);
     payerGroup.append(payerOptions, payerStatus);
