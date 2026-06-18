@@ -14,6 +14,8 @@ Non serve caricare `server.js` o `expenses.json` per GitHub Pages: erano utili s
 
 ## Procedura
 
+Prima di attivare GitHub Pages, la repository deve essere pubblica. Se GitHub mostra il messaggio `Upgrade or make this repository public to enable Pages`, vai su `Settings > General > Danger Zone > Change repository visibility` e cambia la visibilita in `Public`.
+
 1. Crea una nuova repository su GitHub.
 2. Carica i file elencati sopra nella root della repository.
 3. Vai su `Settings`.
@@ -25,6 +27,21 @@ Non serve caricare `server.js` o `expenses.json` per GitHub Pages: erano utili s
 6. Salva.
 
 Dopo qualche minuto GitHub mostrera il link pubblico della tua app.
+
+## Aggiornare una modifica gia pubblicata
+
+Quando modifichi il codice, non devi rifare la configurazione di Pages.
+
+1. Apri la repository su GitHub.
+2. Carica e sostituisci i file modificati.
+3. Scrivi un messaggio di commit, per esempio `Aggiorna lista spese`.
+4. Conferma con `Commit changes`.
+5. GitHub Pages aggiorna il sito automaticamente dopo qualche minuto.
+
+Per questa modifica devi sostituire:
+
+- `script.js`
+- `styles.css`
 
 ## Firebase
 

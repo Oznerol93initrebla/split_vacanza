@@ -34,9 +34,9 @@ let firestoreSetDoc = null;
 
 function seedExpenses() {
   return [
-    { id: crypto.randomUUID(), name: "Hotel", cost: 420, paid: false },
-    { id: crypto.randomUUID(), name: "Cena vista mare", cost: 86.5, paid: false },
-    { id: crypto.randomUUID(), name: "Treno aeroporto", cost: 32, paid: false },
+    { id: crypto.randomUUID(), name: "Hotel", cost: 420, paid: false, payerA: false, payerB: false },
+    { id: crypto.randomUUID(), name: "Cena vista mare", cost: 86.5, paid: false, payerA: false, payerB: false },
+    { id: crypto.randomUUID(), name: "Treno aeroporto", cost: 32, paid: false, payerA: false, payerB: false },
   ];
 }
 
@@ -49,6 +49,8 @@ function normalizeExpenses(items) {
           name: expense.name,
           cost: Number(expense.cost) || 0,
           paid: Boolean(expense.paid),
+          payerA: Boolean(expense.payerA),
+          payerB: Boolean(expense.payerB),
         }))
     : [];
 }
@@ -102,6 +104,22 @@ function showUndoSnapshot() {
 
 function formatMoney(value) {
   return euroFormatter.format(value);
+}
+
+function getPayerStatus(expense) {
+  if (expense.payerA && expense.payerB) {
+    return "Divisa tra A e B";
+  }
+
+  if (expense.payerA) {
+    return "Anticipata da Persona A";
+  }
+
+  if (expense.payerB) {
+    return "Anticipata da Persona B";
+  }
+
+  return "Chi ha pagato?";
 }
 
 async function persistExpenses() {
@@ -301,6 +319,31 @@ function renderStatusGroup(targetList, targetTotal, groupExpenses, emptyText) {
   targetTotal.textContent = formatMoney(total);
 }
 
+function createPayerToggle(expense, field, labelText) {
+  const label = document.createElement("label");
+  label.className = "payer-toggle";
+
+  const checkbox = document.createElement("input");
+  checkbox.className = "payer-checkbox";
+  checkbox.type = "checkbox";
+  checkbox.checked = Boolean(expense[field]);
+  checkbox.setAttribute("aria-label", `${labelText} ha pagato ${expense.name}`);
+  checkbox.addEventListener("change", async () => {
+    clearUndoSnapshot();
+    expenses = expenses.map((itemExpense) =>
+      itemExpense.id === expense.id ? { ...itemExpense, [field]: checkbox.checked } : itemExpense
+    );
+    render();
+    await persistExpenses();
+  });
+
+  const text = document.createElement("span");
+  text.textContent = labelText;
+
+  label.append(checkbox, text);
+  return label;
+}
+
 function render() {
   list.innerHTML = "";
 
@@ -339,9 +382,26 @@ function render() {
     status.className = "expense-status";
     status.textContent = expense.paid ? "Pagata" : "Da pagare";
 
+    const payerGroup = document.createElement("div");
+    payerGroup.className = "payer-group";
+    payerGroup.setAttribute("aria-label", `Chi ha pagato ${expense.name}`);
+
+    const payerStatus = document.createElement("span");
+    payerStatus.className = "payer-status";
+    payerStatus.textContent = getPayerStatus(expense);
+
+    const payerOptions = document.createElement("div");
+    payerOptions.className = "payer-options";
+
+    const payerA = createPayerToggle(expense, "payerA", "Persona A");
+    const payerB = createPayerToggle(expense, "payerB", "Persona B");
+
+    payerOptions.append(payerA, payerB);
+    payerGroup.append(payerOptions, payerStatus);
+
     const details = document.createElement("div");
     details.className = "expense-details";
-    details.append(name, status);
+    details.append(name, status, payerGroup);
 
     const priceGroup = document.createElement("div");
     priceGroup.className = "expense-price-group";
@@ -401,6 +461,8 @@ form.addEventListener("submit", async (event) => {
     name,
     cost: Math.round(cost * 100) / 100,
     paid: false,
+    payerA: false,
+    payerB: false,
   });
 
   render();
