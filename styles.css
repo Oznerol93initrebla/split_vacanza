@@ -254,7 +254,8 @@ input:focus {
 
 .expense-form button,
 .ghost-button,
-.delete-button {
+.delete-button,
+.edit-button {
   min-height: 48px;
   border: 0;
   border-radius: 16px;
@@ -334,6 +335,10 @@ input:focus {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.78);
   transition: border-color 0.2s, background 0.2s, opacity 0.2s;
+}
+
+.expense-item.is-editing {
+  border-color: rgba(116, 79, 198, 0.34);
 }
 
 .expense-item.is-paid {
@@ -416,6 +421,15 @@ input:focus {
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 800;
+}
+
+.expense-description {
+  display: block;
+  margin-top: 4px;
+  color: rgba(68, 69, 84, 0.76);
+  font-size: 0.74rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .is-paid .expense-name {
@@ -514,6 +528,22 @@ input:focus {
   white-space: nowrap;
 }
 
+.row-actions {
+  display: grid;
+  justify-items: end;
+  gap: 7px;
+}
+
+.edit-button {
+  min-height: 34px;
+  min-width: 72px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: rgba(116, 79, 198, 0.12);
+  color: var(--slate-blue);
+  font-size: 0.72rem;
+}
+
 .delete-button {
   display: grid;
   place-items: center;
@@ -523,6 +553,54 @@ input:focus {
   background: rgba(192, 169, 176, 0.24);
   color: var(--charcoal-blue);
   font-size: 1.2rem;
+}
+
+.inline-edit-form {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid rgba(116, 79, 198, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.inline-edit-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.inline-edit-form input {
+  min-height: 46px;
+  border-radius: 13px;
+}
+
+.inline-edit-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.inline-edit-actions button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 13px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.inline-edit-actions button:first-child {
+  background: linear-gradient(135deg, var(--verdigris), var(--slate-blue));
+  color: white;
+}
+
+.inline-edit-actions button:last-child {
+  background: rgba(68, 69, 84, 0.1);
+  color: var(--charcoal-blue);
 }
 
 .empty-state {
@@ -684,7 +762,7 @@ input:focus {
   }
 
   .expense-form {
-    grid-template-columns: minmax(240px, 1fr) 190px 132px;
+    grid-template-columns: minmax(220px, 1fr) 170px 170px 132px;
     align-items: end;
   }
 
@@ -706,5 +784,14 @@ input:focus {
 
   .settlement-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .inline-edit-form {
+    grid-template-columns: minmax(180px, 1fr) 150px 160px auto;
+    align-items: end;
+  }
+
+  .inline-edit-actions {
+    min-width: 170px;
   }
 }

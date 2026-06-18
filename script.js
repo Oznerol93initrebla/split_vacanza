@@ -6,6 +6,7 @@ const EVENTS_URL = "/api/events";
 const form = document.querySelector("#expenseForm");
 const nameInput = document.querySelector("#expenseName");
 const costInput = document.querySelector("#expenseCost");
+const dateInput = document.querySelector("#expenseDate");
 const list = document.querySelector("#expenseList");
 const emptyState = document.querySelector("#emptyState");
 const clearAllButton = document.querySelector("#clearAll");
@@ -35,12 +36,13 @@ let undoSnapshot = null;
 let backend = "local";
 let firestoreDocRef = null;
 let firestoreSetDoc = null;
+let editingExpenseId = null;
 
 function seedExpenses() {
   return [
-    { id: crypto.randomUUID(), name: "Hotel", cost: 420, paid: false, payerA: false, payerB: false },
-    { id: crypto.randomUUID(), name: "Cena vista mare", cost: 86.5, paid: false, payerA: false, payerB: false },
-    { id: crypto.randomUUID(), name: "Treno aeroporto", cost: 32, paid: false, payerA: false, payerB: false },
+    { id: crypto.randomUUID(), name: "Hotel", cost: 420, paid: false, payerA: false, payerB: false, description: "" },
+    { id: crypto.randomUUID(), name: "Cena vista mare", cost: 86.5, paid: false, payerA: false, payerB: false, description: "" },
+    { id: crypto.randomUUID(), name: "Treno aeroporto", cost: 32, paid: false, payerA: false, payerB: false, description: "" },
   ];
 }
 
@@ -55,6 +57,7 @@ function normalizeExpenses(items) {
           paid: Boolean(expense.paid),
           payerA: Boolean(expense.payerA),
           payerB: Boolean(expense.payerB),
+          description: typeof expense.description === "string" ? expense.description : "",
         }))
     : [];
 }
@@ -108,6 +111,20 @@ function showUndoSnapshot() {
 
 function formatMoney(value) {
   return euroFormatter.format(value);
+}
+
+function formatDescription(value) {
+  if (!value) {
+    return "";
+  }
+
+  const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!dateMatch) {
+    return value;
+  }
+
+  return `${dateMatch[3]}/${dateMatch[2]}/${dateMatch[1]}`;
 }
 
 function getPayerStatus(expense) {
@@ -402,6 +419,83 @@ function createPayerToggle(expense, field, labelText) {
   return label;
 }
 
+function createEditForm(expense) {
+  const editForm = document.createElement("form");
+  editForm.className = "inline-edit-form";
+
+  const nameLabel = document.createElement("label");
+  nameLabel.textContent = "Voce";
+  const editName = document.createElement("input");
+  editName.type = "text";
+  editName.value = expense.name;
+  editName.required = true;
+  nameLabel.append(editName);
+
+  const costLabel = document.createElement("label");
+  costLabel.textContent = "Costo";
+  const editCost = document.createElement("input");
+  editCost.type = "number";
+  editCost.min = "0.01";
+  editCost.step = "0.01";
+  editCost.value = String(expense.cost);
+  editCost.required = true;
+  costLabel.append(editCost);
+
+  const dateLabel = document.createElement("label");
+  dateLabel.textContent = "Data acquisto";
+  const editDescription = document.createElement("input");
+  editDescription.type = "date";
+  editDescription.value = expense.description || "";
+  dateLabel.append(editDescription);
+
+  const actions = document.createElement("div");
+  actions.className = "inline-edit-actions";
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "submit";
+  saveButton.textContent = "Salva";
+
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.textContent = "Annulla";
+  cancelButton.addEventListener("click", () => {
+    editingExpenseId = null;
+    render();
+  });
+
+  actions.append(saveButton, cancelButton);
+  editForm.append(nameLabel, costLabel, dateLabel, actions);
+
+  editForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const nextName = editName.value.trim();
+    const nextCost = Number(editCost.value);
+    const nextDescription = editDescription.value.trim();
+
+    if (!nextName || Number.isNaN(nextCost) || nextCost <= 0) {
+      return;
+    }
+
+    clearUndoSnapshot();
+    expenses = expenses.map((itemExpense) =>
+      itemExpense.id === expense.id
+        ? {
+            ...itemExpense,
+            name: nextName,
+            cost: Math.round(nextCost * 100) / 100,
+            description: nextDescription,
+          }
+        : itemExpense
+    );
+    editingExpenseId = null;
+    render();
+    await persistExpenses();
+  });
+
+  return editForm;
+}
+
 function render() {
   list.innerHTML = "";
 
@@ -409,6 +503,7 @@ function render() {
     const item = document.createElement("li");
     item.className = "expense-item";
     item.classList.toggle("is-paid", expense.paid);
+    item.classList.toggle("is-editing", editingExpenseId === expense.id);
 
     const paidLabel = document.createElement("label");
     paidLabel.className = "paid-toggle";
@@ -440,6 +535,10 @@ function render() {
     status.className = "expense-status";
     status.textContent = expense.paid ? "Pagata" : "Da pagare";
 
+    const description = document.createElement("span");
+    description.className = "expense-description";
+    description.textContent = expense.description ? `Data acquisto: ${formatDescription(expense.description)}` : "Data acquisto non inserita";
+
     const payerGroup = document.createElement("div");
     payerGroup.className = "payer-group";
     payerGroup.setAttribute("aria-label", `Chi ha pagato ${expense.name}`);
@@ -459,7 +558,7 @@ function render() {
 
     const details = document.createElement("div");
     details.className = "expense-details";
-    details.append(name, status, payerGroup);
+    details.append(name, status, description, payerGroup);
 
     const priceGroup = document.createElement("div");
     priceGroup.className = "expense-price-group";
@@ -474,6 +573,19 @@ function render() {
 
     priceGroup.append(price, splitPrice);
 
+    const rowActions = document.createElement("div");
+    rowActions.className = "row-actions";
+
+    const editButton = document.createElement("button");
+    editButton.className = "edit-button";
+    editButton.type = "button";
+    editButton.textContent = "Modifica";
+    editButton.setAttribute("aria-label", `Modifica ${expense.name}`);
+    editButton.addEventListener("click", () => {
+      editingExpenseId = editingExpenseId === expense.id ? null : expense.id;
+      render();
+    });
+
     const deleteButton = document.createElement("button");
     deleteButton.className = "delete-button";
     deleteButton.type = "button";
@@ -486,7 +598,13 @@ function render() {
       await persistExpenses();
     });
 
-    item.append(paidLabel, details, priceGroup, deleteButton);
+    rowActions.append(editButton, deleteButton);
+    item.append(paidLabel, details, priceGroup, rowActions);
+
+    if (editingExpenseId === expense.id) {
+      item.append(createEditForm(expense));
+    }
+
     list.append(item);
   });
 
@@ -522,6 +640,7 @@ form.addEventListener("submit", async (event) => {
     paid: false,
     payerA: false,
     payerB: false,
+    description: dateInput.value,
   });
 
   render();
