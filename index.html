@@ -51,7 +51,7 @@
           </label>
           <label>
             <span>Data acquisto</span>
-            <input id="expenseDate" type="date" />
+            <input id="expenseDate" type="text" inputmode="numeric" maxlength="5" placeholder="gg/mm" />
           </label>
           <button type="submit">Aggiungi</button>
         </form>
@@ -64,6 +64,16 @@
             <h2>Lista voci</h2>
           </div>
           <button id="clearAll" class="ghost-button" type="button">Svuota</button>
+        </div>
+
+        <div class="filter-bar">
+          <label>
+            <span>Filtra per data</span>
+            <select id="dateFilter">
+              <option value="all">Tutte le date</option>
+            </select>
+          </label>
+          <p id="filterCount">Tutte le voci</p>
         </div>
 
         <div id="undoClearBar" class="undo-clear hidden" role="status" aria-live="polite">

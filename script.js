@@ -2,6 +2,7 @@ const STORAGE_KEY = "split-vacanza-expenses";
 const PEOPLE = 2;
 const API_URL = "/api/expenses";
 const EVENTS_URL = "/api/events";
+const DEFAULT_YEAR = "2026";
 
 const form = document.querySelector("#expenseForm");
 const nameInput = document.querySelector("#expenseName");
@@ -25,6 +26,8 @@ const lorePaidTotal = document.querySelector("#lorePaidTotal");
 const beaPaidTotal = document.querySelector("#beaPaidTotal");
 const settlementAmount = document.querySelector("#settlementAmount");
 const settlementText = document.querySelector("#settlementText");
+const dateFilter = document.querySelector("#dateFilter");
+const filterCount = document.querySelector("#filterCount");
 
 const euroFormatter = new Intl.NumberFormat("it-IT", {
   style: "currency",
@@ -37,6 +40,8 @@ let backend = "local";
 let firestoreDocRef = null;
 let firestoreSetDoc = null;
 let editingExpenseId = null;
+let undoMessage = "";
+let selectedDateFilter = "all";
 
 function seedExpenses() {
   return [
@@ -100,17 +105,19 @@ function cloneExpenses(items) {
 
 function clearUndoSnapshot() {
   undoSnapshot = null;
+  undoMessage = "";
   undoClearBar.classList.add("hidden");
 }
 
-function showUndoSnapshot() {
+function showUndoSnapshot(message = "") {
   if (!undoSnapshot || undoSnapshot.length === 0) {
     clearUndoSnapshot();
     return;
   }
 
   const label = undoSnapshot.length === 1 ? "voce eliminata" : "voci eliminate";
-  undoClearText.textContent = `${undoSnapshot.length} ${label}.`;
+  undoMessage = message || `${undoSnapshot.length} ${label}.`;
+  undoClearText.textContent = undoMessage;
   undoClearBar.classList.remove("hidden");
 }
 
@@ -130,6 +137,51 @@ function formatDescription(value) {
   }
 
   return `${dateMatch[3]}/${dateMatch[2]}/${dateMatch[1]}`;
+}
+
+function parseDayMonth(value) {
+  const cleanValue = value.trim();
+
+  if (!cleanValue) {
+    return "";
+  }
+
+  const dateMatch = cleanValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (dateMatch) {
+    return cleanValue;
+  }
+
+  const compactMatch = cleanValue.match(/^(\d{2})(\d{2})$/);
+  const separatedMatch = cleanValue.match(/^(\d{1,2})[\/.-](\d{1,2})$/);
+  const match = compactMatch || separatedMatch;
+
+  if (!match) {
+    return null;
+  }
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const date = new Date(Number(DEFAULT_YEAR), month - 1, day);
+
+  if (date.getFullYear() !== Number(DEFAULT_YEAR) || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null;
+  }
+
+  return `${DEFAULT_YEAR}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function storageDateToDayMonth(value) {
+  const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return dateMatch ? `${dateMatch[3]}/${dateMatch[2]}` : value;
+}
+
+function getDateFilterLabel(value) {
+  if (value === "no-date") {
+    return "Senza data";
+  }
+
+  return formatDescription(value);
 }
 
 function getPayerStatus(expense) {
@@ -403,6 +455,49 @@ function renderSettlement(total) {
   }
 }
 
+function getFilteredExpenses() {
+  if (selectedDateFilter === "all") {
+    return expenses;
+  }
+
+  if (selectedDateFilter === "no-date") {
+    return expenses.filter((expense) => !expense.description);
+  }
+
+  return expenses.filter((expense) => expense.description === selectedDateFilter);
+}
+
+function renderDateFilter() {
+  const currentValue = selectedDateFilter;
+  const dateValues = [...new Set(expenses.map((expense) => expense.description).filter(Boolean))].sort();
+  const hasNoDate = expenses.some((expense) => !expense.description);
+
+  dateFilter.innerHTML = "";
+
+  const allOption = document.createElement("option");
+  allOption.value = "all";
+  allOption.textContent = "Tutte le date";
+  dateFilter.append(allOption);
+
+  dateValues.forEach((dateValue) => {
+    const option = document.createElement("option");
+    option.value = dateValue;
+    option.textContent = getDateFilterLabel(dateValue);
+    dateFilter.append(option);
+  });
+
+  if (hasNoDate) {
+    const noDateOption = document.createElement("option");
+    noDateOption.value = "no-date";
+    noDateOption.textContent = "Senza data";
+    dateFilter.append(noDateOption);
+  }
+
+  const values = [...dateFilter.options].map((option) => option.value);
+  selectedDateFilter = values.includes(currentValue) ? currentValue : "all";
+  dateFilter.value = selectedDateFilter;
+}
+
 function createPayerToggle(expense, field, labelText) {
   const label = document.createElement("label");
   label.className = "payer-toggle";
@@ -461,8 +556,11 @@ function createEditForm(expense) {
   const dateLabel = document.createElement("label");
   dateLabel.textContent = "Data acquisto";
   const editDescription = document.createElement("input");
-  editDescription.type = "date";
-  editDescription.value = expense.description || "";
+  editDescription.type = "text";
+  editDescription.inputMode = "numeric";
+  editDescription.maxLength = 5;
+  editDescription.placeholder = "gg/mm";
+  editDescription.value = storageDateToDayMonth(expense.description || "");
   dateLabel.append(editDescription);
 
   const actions = document.createElement("div");
@@ -488,9 +586,9 @@ function createEditForm(expense) {
 
     const nextName = editName.value.trim();
     const nextCost = Number(editCost.value);
-    const nextDescription = editDescription.value.trim();
+    const nextDescription = parseDayMonth(editDescription.value);
 
-    if (!nextName || Number.isNaN(nextCost) || nextCost <= 0) {
+    if (!nextName || Number.isNaN(nextCost) || nextCost <= 0 || nextDescription === null) {
       return;
     }
 
@@ -515,8 +613,11 @@ function createEditForm(expense) {
 
 function render() {
   list.innerHTML = "";
+  renderDateFilter();
 
-  expenses.forEach((expense) => {
+  const visibleExpenses = getFilteredExpenses();
+
+  visibleExpenses.forEach((expense) => {
     const item = document.createElement("li");
     item.className = "expense-item";
     item.classList.toggle("is-paid", expense.paid);
@@ -619,9 +720,11 @@ function render() {
     deleteButton.textContent = "x";
     deleteButton.setAttribute("aria-label", `Elimina ${expense.name}`);
     deleteButton.addEventListener("click", async () => {
-      clearUndoSnapshot();
+      undoSnapshot = cloneExpenses(expenses);
       expenses = expenses.filter((itemExpense) => itemExpense.id !== expense.id);
+      editingExpenseId = null;
       render();
+      showUndoSnapshot(`"${expense.name}" eliminata.`);
       await persistExpenses();
     });
 
@@ -642,7 +745,15 @@ function render() {
   totalAmount.textContent = formatMoney(total);
   perPersonAmount.textContent = formatMoney(total / PEOPLE);
   expenseCount.textContent = String(expenses.length);
-  emptyState.classList.toggle("hidden", expenses.length > 0);
+  filterCount.textContent =
+    selectedDateFilter === "all"
+      ? `${expenses.length} voci totali`
+      : `${visibleExpenses.length} di ${expenses.length} voci`;
+  emptyState.querySelector("p").textContent =
+    expenses.length > 0 && visibleExpenses.length === 0
+      ? "Nessuna voce per questa data."
+      : "Aggiungi la prima spesa della vacanza.";
+  emptyState.classList.toggle("hidden", visibleExpenses.length > 0);
   clearAllButton.disabled = expenses.length === 0;
   renderStatusGroup(paidList, paidTotal, paidExpenses, "Nessuna voce pagata");
   renderStatusGroup(pendingList, pendingTotal, pendingExpenses, "Nessuna voce in sospeso");
@@ -654,8 +765,9 @@ form.addEventListener("submit", async (event) => {
 
   const name = nameInput.value.trim();
   const cost = Number(costInput.value);
+  const description = parseDayMonth(dateInput.value);
 
-  if (!name || Number.isNaN(cost) || cost <= 0) {
+  if (!name || Number.isNaN(cost) || cost <= 0 || description === null) {
     return;
   }
 
@@ -667,7 +779,7 @@ form.addEventListener("submit", async (event) => {
     paid: false,
     payerA: false,
     payerB: false,
-    description: dateInput.value,
+    description,
   });
 
   render();
@@ -693,6 +805,12 @@ undoClearButton.addEventListener("click", async () => {
   clearUndoSnapshot();
   render();
   await persistExpenses();
+});
+
+dateFilter.addEventListener("change", () => {
+  selectedDateFilter = dateFilter.value;
+  editingExpenseId = null;
+  render();
 });
 
 render();
