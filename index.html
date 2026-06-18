@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Split Vacanza</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Budget condiviso</p>
+          <h1>Split Vacanza</h1>
+          <p class="subtitle">Tieni traccia delle spese e scopri subito quanto deve pagare ogni persona.</p>
+          <p id="syncStatus" class="sync-status">Modalita locale</p>
+        </div>
+        <div class="people-pill" aria-label="Numero persone">
+          <span>2</span>
+          persone
+        </div>
+      </section>
+
+      <section class="summary-grid" aria-label="Riepilogo spese">
+        <article class="summary-card total-card">
+          <span>Totale spese</span>
+          <strong id="totalAmount">0,00 EUR</strong>
+        </article>
+        <article class="summary-card">
+          <span>A testa</span>
+          <strong id="perPersonAmount">0,00 EUR</strong>
+        </article>
+        <article class="summary-card">
+          <span>Voci</span>
+          <strong id="expenseCount">0</strong>
+        </article>
+      </section>
+
+      <section class="panel">
+        <form id="expenseForm" class="expense-form">
+          <label>
+            <span>Voce di spesa</span>
+            <input id="expenseName" type="text" placeholder="Es. Hotel, cena, taxi" autocomplete="off" required />
+          </label>
+          <label>
+            <span>Costo</span>
+            <div class="money-input">
+              <span>EUR</span>
+              <input id="expenseCost" type="number" min="0.01" step="0.01" placeholder="0,00" required />
+            </div>
+          </label>
+          <button type="submit">Aggiungi</button>
+        </form>
+      </section>
+
+      <section class="panel list-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Foglio spese</p>
+            <h2>Lista voci</h2>
+          </div>
+          <button id="clearAll" class="ghost-button" type="button">Svuota</button>
+        </div>
+
+        <div id="undoClearBar" class="undo-clear hidden" role="status" aria-live="polite">
+          <span id="undoClearText">Lista svuotata.</span>
+          <button id="undoClear" type="button">Annulla</button>
+        </div>
+
+        <ul id="expenseList" class="expense-list" aria-live="polite"></ul>
+
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">+</div>
+          <p>Aggiungi la prima spesa della vacanza.</p>
+        </div>
+
+        <div class="status-board" aria-label="Riepilogo stato pagamenti">
+          <section class="status-column">
+            <div class="status-heading">
+              <span>Pagate</span>
+              <strong id="paidTotal">0,00 EUR</strong>
+            </div>
+            <ul id="paidList" class="status-list"></ul>
+          </section>
+          <section class="status-column">
+            <div class="status-heading">
+              <span>Da pagare</span>
+              <strong id="pendingTotal">0,00 EUR</strong>
+            </div>
+            <ul id="pendingList" class="status-list"></ul>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+# Pubblicazione su GitHub Pages
+
+Questi sono i file da caricare nella repository GitHub:
+
+- `index.html`
+- `styles.css`
+- `script.js`
+- `firebase-config.js`
+- `.nojekyll`
+- `README.md`
+- `GITHUB_PAGES.md`
+
+Non serve caricare `server.js` o `expenses.json` per GitHub Pages: erano utili solo per il server locale Node.js.
+
+## Procedura
+
+1. Crea una nuova repository su GitHub.
+2. Carica i file elencati sopra nella root della repository.
+3. Vai su `Settings`.
+4. Apri `Pages`.
+5. In `Build and deployment`, scegli:
+   - Source: `Deploy from a branch`
+   - Branch: `main`
+   - Folder: `/root`
+6. Salva.
+
+Dopo qualche minuto GitHub mostrera il link pubblico della tua app.
+
+## Firebase
+
+La sincronizzazione cloud funziona tramite Firestore usando i dati presenti in `firebase-config.js`.
+
+Se Firebase blocca il dominio GitHub Pages:
+
+1. Vai su Firebase Console.
+2. Apri `Authentication`.
+3. Vai su `Settings`.
+4. In `Authorized domains`, aggiungi il dominio GitHub Pages, per esempio:
+
+```text
+nomeutente.github.io
+```
+
+Per Firestore, assicurati che le regole permettano accesso al documento `trips/vacanza`.
