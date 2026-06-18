@@ -387,6 +387,12 @@ input:focus {
   color: white;
 }
 
+.paid-checkbox:disabled + .paid-mark {
+  cursor: not-allowed;
+  opacity: 0.42;
+  background: rgba(68, 69, 84, 0.08);
+}
+
 .paid-checkbox:checked + .paid-mark::before {
   content: "";
   width: 12px;
@@ -402,6 +408,10 @@ input:focus {
 
 .paid-toggle:hover .paid-mark {
   transform: translateY(-1px);
+}
+
+.paid-toggle:has(.paid-checkbox:disabled):hover .paid-mark {
+  transform: none;
 }
 
 .expense-details {

@@ -50,15 +50,20 @@ function normalizeExpenses(items) {
   return Array.isArray(items)
     ? items
         .filter((expense) => expense && typeof expense.name === "string")
-        .map((expense) => ({
-          id: expense.id || crypto.randomUUID(),
-          name: expense.name,
-          cost: Number(expense.cost) || 0,
-          paid: Boolean(expense.paid),
-          payerA: Boolean(expense.payerA),
-          payerB: Boolean(expense.payerB),
-          description: typeof expense.description === "string" ? expense.description : "",
-        }))
+        .map((expense) => {
+          const payerA = Boolean(expense.payerA);
+          const payerB = Boolean(expense.payerB);
+
+          return {
+            id: expense.id || crypto.randomUUID(),
+            name: expense.name,
+            cost: Number(expense.cost) || 0,
+            paid: payerA && payerB,
+            payerA,
+            payerB,
+            description: typeof expense.description === "string" ? expense.description : "",
+          };
+        })
     : [];
 }
 
@@ -141,6 +146,10 @@ function getPayerStatus(expense) {
   }
 
   return "Chi ha pagato?";
+}
+
+function canMarkAsPaid(expense) {
+  return Boolean(expense.payerA && expense.payerB);
 }
 
 function getPaymentBalance(items) {
@@ -405,9 +414,17 @@ function createPayerToggle(expense, field, labelText) {
   checkbox.setAttribute("aria-label", `${labelText} ha pagato ${expense.name}`);
   checkbox.addEventListener("change", async () => {
     clearUndoSnapshot();
-    expenses = expenses.map((itemExpense) =>
-      itemExpense.id === expense.id ? { ...itemExpense, [field]: checkbox.checked } : itemExpense
-    );
+    expenses = expenses.map((itemExpense) => {
+      if (itemExpense.id !== expense.id) {
+        return itemExpense;
+      }
+
+      const updatedExpense = { ...itemExpense, [field]: checkbox.checked };
+      return {
+        ...updatedExpense,
+        paid: canMarkAsPaid(updatedExpense),
+      };
+    });
     render();
     await persistExpenses();
   });
@@ -512,8 +529,18 @@ function render() {
     paidCheckbox.className = "paid-checkbox";
     paidCheckbox.type = "checkbox";
     paidCheckbox.checked = expense.paid;
-    paidCheckbox.setAttribute("aria-label", `Segna ${expense.name} come pagata`);
+    paidCheckbox.disabled = !canMarkAsPaid(expense);
+    paidCheckbox.setAttribute(
+      "aria-label",
+      canMarkAsPaid(expense)
+        ? `Segna ${expense.name} come pagata`
+        : `Seleziona Lore e Bea prima di segnare ${expense.name} come pagata`
+    );
     paidCheckbox.addEventListener("change", async () => {
+      if (!canMarkAsPaid(expense)) {
+        return;
+      }
+
       clearUndoSnapshot();
       expenses = expenses.map((itemExpense) =>
         itemExpense.id === expense.id ? { ...itemExpense, paid: paidCheckbox.checked } : itemExpense
@@ -533,7 +560,7 @@ function render() {
 
     const status = document.createElement("span");
     status.className = "expense-status";
-    status.textContent = expense.paid ? "Pagata" : "Da pagare";
+    status.textContent = expense.paid ? "Pagata" : canMarkAsPaid(expense) ? "Pronta da segnare" : "Da pagare";
 
     const description = document.createElement("span");
     description.className = "expense-description";
