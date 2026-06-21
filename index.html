@@ -11,8 +11,8 @@
       <section class="hero">
         <div>
           <p class="eyebrow">Budget condiviso</p>
-          <h1>Vacanza Puglia 2026</h1>
-          <p class="subtitle">Patata e Ronfino vanno al mare</p>
+          <h1>Split Vacanza</h1>
+          <p class="subtitle">Organizza le spese condivise e tutto cio che serve per la vacanza.</p>
           <p id="syncStatus" class="sync-status">Modalita locale</p>
         </div>
         <div class="people-pill" aria-label="Numero persone">
@@ -20,6 +20,19 @@
           persone
         </div>
       </section>
+
+      <nav class="app-navigation" aria-label="Sezioni dell'app">
+        <button class="nav-button is-active" type="button" data-view="expenses" aria-controls="expensesView" aria-selected="true">
+          <span class="nav-icon" aria-hidden="true">EUR</span>
+          Spese
+        </button>
+        <button class="nav-button" type="button" data-view="packing" aria-controls="packingView" aria-selected="false">
+          <span class="nav-icon" aria-hidden="true">&#10003;</span>
+          Valigia
+        </button>
+      </nav>
+
+      <div id="expensesView" class="app-view is-active" data-app-view="expenses">
 
       <section class="summary-grid" aria-label="Riepilogo spese">
         <article class="summary-card total-card">
@@ -40,7 +53,7 @@
         <form id="expenseForm" class="expense-form">
           <label>
             <span>Voce di spesa</span>
-            <input id="expenseName" type="text" placeholder="Es. Hotel, cena, benzina" autocomplete="off" required />
+            <input id="expenseName" type="text" placeholder="Es. Hotel, cena, taxi" autocomplete="off" required />
           </label>
           <label>
             <span>Costo</span>
@@ -126,6 +139,51 @@
           <p id="settlementText" class="settlement-text">Aggiungi le spese e seleziona chi ha pagato.</p>
         </section>
       </section>
+      </div>
+
+      <div id="packingView" class="app-view" data-app-view="packing" hidden>
+        <section class="packing-summary" aria-label="Riepilogo valigia">
+          <article>
+            <span>Oggetti</span>
+            <strong id="packingCount">0</strong>
+          </article>
+          <article>
+            <span>Pronti</span>
+            <strong id="packedCount">0</strong>
+          </article>
+          <article>
+            <span>Da preparare</span>
+            <strong id="unpackedCount">0</strong>
+          </article>
+        </section>
+
+        <section class="panel packing-form-panel">
+          <form id="packingForm" class="packing-form">
+            <label>
+              <span>Oggetto da portare</span>
+              <input id="packingName" type="text" placeholder="Es. Caricabatterie, costume" autocomplete="off" required />
+            </label>
+            <button type="submit">Aggiungi</button>
+          </form>
+        </section>
+
+        <section class="panel packing-list-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Lista valigia</p>
+              <h2>Cosa portare</h2>
+            </div>
+            <span id="packingProgress" class="packing-progress">0 di 0</span>
+          </div>
+
+          <ul id="packingList" class="packing-list" aria-live="polite"></ul>
+
+          <div id="packingEmptyState" class="empty-state">
+            <div class="empty-icon">+</div>
+            <p>Aggiungi il primo oggetto da portare.</p>
+          </div>
+        </section>
+      </div>
     </main>
 
     <script type="module" src="script.js"></script>

@@ -30,7 +30,7 @@ L'app puo funzionare in tre modi:
 
 ### 4. Regole Firestore minime
 
-Queste regole permettono di leggere e scrivere solo il documento della vacanza usato dall'app:
+Queste regole permettono di leggere e scrivere il documento delle spese e la lista valigia della stessa vacanza:
 
 ```text
 rules_version = '2';
@@ -39,10 +39,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /trips/vacanza {
       allow read, write: if true;
+
+      match /packing/items {
+        allow read, write: if true;
+      }
     }
   }
 }
 ```
+
+La lista valigia viene salvata nel documento `trips/vacanza/packing/items`. Non devi creare manualmente la raccolta: Firestore la crea automaticamente quando aggiungi il primo oggetto dall'app.
 
 Nota: queste regole sono semplici e adatte a una condivisione privata del link tra due persone. Se vuoi pubblicare l'app o proteggerla con login, conviene aggiungere Firebase Authentication.
 

@@ -1,4 +1,5 @@
 const STORAGE_KEY = "split-vacanza-expenses";
+const PACKING_STORAGE_KEY = "split-vacanza-packing";
 const PEOPLE = 2;
 const API_URL = "/api/expenses";
 const EVENTS_URL = "/api/events";
@@ -28,6 +29,16 @@ const settlementAmount = document.querySelector("#settlementAmount");
 const settlementText = document.querySelector("#settlementText");
 const dateFilter = document.querySelector("#dateFilter");
 const filterCount = document.querySelector("#filterCount");
+const navigationButtons = [...document.querySelectorAll("[data-view]")];
+const appViews = [...document.querySelectorAll("[data-app-view]")];
+const packingForm = document.querySelector("#packingForm");
+const packingNameInput = document.querySelector("#packingName");
+const packingList = document.querySelector("#packingList");
+const packingEmptyState = document.querySelector("#packingEmptyState");
+const packingCount = document.querySelector("#packingCount");
+const packedCount = document.querySelector("#packedCount");
+const unpackedCount = document.querySelector("#unpackedCount");
+const packingProgress = document.querySelector("#packingProgress");
 
 const euroFormatter = new Intl.NumberFormat("it-IT", {
   style: "currency",
@@ -35,11 +46,14 @@ const euroFormatter = new Intl.NumberFormat("it-IT", {
 });
 
 let expenses = loadLocalExpenses({ useSeed: true });
+let packingItems = loadLocalPackingItems();
 let undoSnapshot = null;
 let backend = "local";
 let firestoreDocRef = null;
 let firestoreSetDoc = null;
+let firestorePackingDocRef = null;
 let editingExpenseId = null;
+let editingPackingItemId = null;
 let undoMessage = "";
 let selectedDateFilter = "all";
 
@@ -92,6 +106,36 @@ function loadLocalExpenses({ useSeed }) {
 
 function saveLocalExpenses() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+}
+
+function normalizePackingItems(items) {
+  return Array.isArray(items)
+    ? items
+        .filter((item) => item && typeof item.name === "string" && item.name.trim())
+        .map((item) => ({
+          id: item.id || crypto.randomUUID(),
+          name: capitalizeFirstLetter(item.name),
+          packed: Boolean(item.packed),
+        }))
+    : [];
+}
+
+function loadLocalPackingItems() {
+  const saved = localStorage.getItem(PACKING_STORAGE_KEY);
+
+  if (!saved) {
+    return [];
+  }
+
+  try {
+    return normalizePackingItems(JSON.parse(saved));
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalPackingItems() {
+  localStorage.setItem(PACKING_STORAGE_KEY, JSON.stringify(packingItems));
 }
 
 function setSyncStatus(text, mode = "local") {
@@ -257,6 +301,23 @@ async function persistExpenses() {
   }
 }
 
+async function persistPackingItems() {
+  saveLocalPackingItems();
+
+  if (backend === "firebase" && firestorePackingDocRef && firestoreSetDoc) {
+    try {
+      await firestoreSetDoc(firestorePackingDocRef, {
+        items: packingItems,
+        updatedAt: Date.now(),
+      });
+      return;
+    } catch {
+      backend = "local";
+      setSyncStatus("Firebase non raggiungibile: salvataggio locale", "local");
+    }
+  }
+}
+
 function applyRemoteExpenses(remoteExpenses) {
   const nextExpenses = normalizeExpenses(remoteExpenses);
 
@@ -267,6 +328,12 @@ function applyRemoteExpenses(remoteExpenses) {
   expenses = nextExpenses;
   saveLocalExpenses();
   render();
+}
+
+function applyRemotePackingItems(remoteItems) {
+  packingItems = normalizePackingItems(remoteItems);
+  saveLocalPackingItems();
+  renderPackingList();
 }
 
 async function initFirebaseMode() {
@@ -295,11 +362,13 @@ async function initFirebaseMode() {
     const database = getFirestore(app);
 
     firestoreDocRef = doc(database, "trips", firebaseTripId);
+    firestorePackingDocRef = doc(database, "trips", firebaseTripId, "packing", "items");
     firestoreSetDoc = setDoc;
     backend = "firebase";
     setSyncStatus("Firebase attivo: sincronizzazione cloud", "live");
 
     const localExpenses = loadLocalExpenses({ useSeed: false });
+    const localPackingItems = loadLocalPackingItems();
 
     onSnapshot(firestoreDocRef, async (snapshot) => {
       if (snapshot.exists()) {
@@ -315,6 +384,27 @@ async function initFirebaseMode() {
         applyRemoteExpenses([]);
       }
     });
+
+    onSnapshot(
+      firestorePackingDocRef,
+      async (snapshot) => {
+        if (snapshot.exists()) {
+          applyRemotePackingItems(snapshot.data().items || []);
+          return;
+        }
+
+        if (localPackingItems.length > 0) {
+          packingItems = localPackingItems;
+          renderPackingList();
+          await persistPackingItems();
+        } else {
+          applyRemotePackingItems([]);
+        }
+      },
+      () => {
+        setSyncStatus("Aggiorna le regole Firebase per sincronizzare la Valigia", "local");
+      }
+    );
 
     return true;
   } catch {
@@ -609,6 +699,137 @@ function createEditForm(expense) {
   return editForm;
 }
 
+function createPackingEditForm(packingItem) {
+  const editForm = document.createElement("form");
+  editForm.className = "packing-edit-form";
+
+  const editInput = document.createElement("input");
+  editInput.type = "text";
+  editInput.value = packingItem.name;
+  editInput.required = true;
+  editInput.setAttribute("aria-label", `Modifica ${packingItem.name}`);
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "submit";
+  saveButton.textContent = "Salva";
+
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.textContent = "Annulla";
+  cancelButton.addEventListener("click", () => {
+    editingPackingItemId = null;
+    renderPackingList();
+  });
+
+  editForm.append(editInput, saveButton, cancelButton);
+  editForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const nextName = capitalizeFirstLetter(editInput.value);
+
+    if (!nextName) {
+      return;
+    }
+
+    packingItems = packingItems.map((item) =>
+      item.id === packingItem.id ? { ...item, name: nextName } : item
+    );
+    editingPackingItemId = null;
+    renderPackingList();
+    await persistPackingItems();
+  });
+
+  queueMicrotask(() => editInput.focus());
+  return editForm;
+}
+
+function renderPackingList() {
+  packingList.innerHTML = "";
+
+  packingItems.forEach((packingItem) => {
+    const item = document.createElement("li");
+    item.className = "packing-item";
+    item.classList.toggle("is-packed", packingItem.packed);
+
+    const checkLabel = document.createElement("label");
+    checkLabel.className = "packing-check";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = packingItem.packed;
+    checkbox.setAttribute("aria-label", `${packingItem.name} in valigia`);
+    checkbox.addEventListener("change", async () => {
+      packingItems = packingItems.map((itemValue) =>
+        itemValue.id === packingItem.id ? { ...itemValue, packed: checkbox.checked } : itemValue
+      );
+      renderPackingList();
+      await persistPackingItems();
+    });
+
+    const checkMark = document.createElement("span");
+    checkMark.className = "packing-check-mark";
+    checkLabel.append(checkbox, checkMark);
+
+    const name = document.createElement("span");
+    name.className = "packing-item-name";
+    name.textContent = packingItem.name;
+
+    const actions = document.createElement("div");
+    actions.className = "packing-actions";
+
+    const editButton = document.createElement("button");
+    editButton.className = "packing-edit-button";
+    editButton.type = "button";
+    editButton.textContent = "Modifica";
+    editButton.setAttribute("aria-label", `Modifica ${packingItem.name}`);
+    editButton.addEventListener("click", () => {
+      editingPackingItemId = packingItem.id;
+      renderPackingList();
+    });
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "packing-delete-button";
+    deleteButton.type = "button";
+    deleteButton.textContent = "x";
+    deleteButton.setAttribute("aria-label", `Elimina ${packingItem.name}`);
+    deleteButton.addEventListener("click", async () => {
+      packingItems = packingItems.filter((itemValue) => itemValue.id !== packingItem.id);
+      editingPackingItemId = null;
+      renderPackingList();
+      await persistPackingItems();
+    });
+
+    actions.append(editButton, deleteButton);
+    item.append(checkLabel, name, actions);
+
+    if (editingPackingItemId === packingItem.id) {
+      item.append(createPackingEditForm(packingItem));
+    }
+
+    packingList.append(item);
+  });
+
+  const completedItems = packingItems.filter((item) => item.packed).length;
+  packingCount.textContent = String(packingItems.length);
+  packedCount.textContent = String(completedItems);
+  unpackedCount.textContent = String(packingItems.length - completedItems);
+  packingProgress.textContent = `${completedItems} di ${packingItems.length}`;
+  packingEmptyState.classList.toggle("hidden", packingItems.length > 0);
+}
+
+function selectView(viewName) {
+  navigationButtons.forEach((button) => {
+    const isActive = button.dataset.view === viewName;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+
+  appViews.forEach((view) => {
+    const isActive = view.dataset.appView === viewName;
+    view.classList.toggle("is-active", isActive);
+    view.hidden = !isActive;
+  });
+}
+
 function render() {
   list.innerHTML = "";
   renderDateFilter();
@@ -798,5 +1019,29 @@ dateFilter.addEventListener("change", () => {
   render();
 });
 
+navigationButtons.forEach((button) => {
+  button.addEventListener("click", () => selectView(button.dataset.view));
+});
+
+packingForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const name = capitalizeFirstLetter(packingNameInput.value);
+
+  if (!name) {
+    return;
+  }
+
+  packingItems.unshift({
+    id: crypto.randomUUID(),
+    name,
+    packed: false,
+  });
+  renderPackingList();
+  await persistPackingItems();
+  packingForm.reset();
+  packingNameInput.focus();
+});
+
 render();
+renderPackingList();
 initSync();
